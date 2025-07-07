@@ -1,24 +1,23 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.bezkoder.spring.security.postgresql.payload.request.ResenedVerificationRequest;
+import com.bezkoder.spring.security.postgresql.services.EmailServiceImpl;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.bezkoder.spring.security.postgresql.models.ERole;
 import com.bezkoder.spring.security.postgresql.models.Role;
@@ -39,6 +38,9 @@ public class AuthController {
   @Autowired
   AuthenticationManager authenticationManager;
 
+
+  @Autowired
+  private EmailServiceImpl emailService;
   @Autowired
   UserRepository userRepository;
 
@@ -51,22 +53,55 @@ public class AuthController {
   @Autowired
   JwtUtils jwtUtils;
 
+
+
+
+
   @PostMapping("/signin")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
-    Authentication authentication = authenticationManager
+
+    Authentication authentication ;
+
+    try {
+      authentication=authenticationManager
         .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+    }catch (AuthenticationException e){
+      return ResponseEntity
+              .status(HttpStatus.UNAUTHORIZED)
+              .body("Error: Invalid username or password");
+    }
+
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+    Optional<User> optionalUser = userRepository.findByUsername(userDetails.getUsername());
+    if (optionalUser.isPresent() && !optionalUser.get().isEmailVerified()) {
+      return ResponseEntity
+              .status(HttpStatus.UNAUTHORIZED)
+              .body("Error: Email not verified. Please verify your email before logging in.");
+    }
+
 
     SecurityContextHolder.getContext().setAuthentication(authentication);
     String jwt = jwtUtils.generateJwtToken(authentication);
 
-    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+
+
     List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
         .collect(Collectors.toList());
 
+
+
     return ResponseEntity
-        .ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(), roles));
+        .ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(),userDetails.getFirstname(),userDetails.getLastname(), userDetails.getEmail(), roles));
   }
+
+
+
+
+
 
   @PostMapping("/signup")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
@@ -79,7 +114,7 @@ public class AuthController {
     }
 
     // Create new user's account
-    User user = new User(signUpRequest.getUsername(), signUpRequest.getEmail(),
+    User user = new User(signUpRequest.getUsername(),  signUpRequest.getFirstname(), signUpRequest.getLastname(),signUpRequest.getEmail(),
         encoder.encode(signUpRequest.getPassword()));
 
     Set<String> strRoles = signUpRequest.getRole();
@@ -111,10 +146,87 @@ public class AuthController {
         }
       });
     }
-
+    user.setEmailVerified(false);
     user.setRoles(roles);
-    userRepository.save(user);
 
+    // Generate verification token
+    String verificationToken = UUID.randomUUID().toString();
+    user.setVerificationToken(verificationToken);
+    user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+
+
+    userRepository.save(user);
+    // Send verification email
+    emailService.sendVerificationEmail(user.getEmail(), verificationToken);
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
   }
+
+
+
+  public boolean verifyEmail(String token) {
+    Optional<User> userOpt = userRepository.findByVerificationToken(token);
+
+    if (userOpt.isEmpty()) {
+      return false;
+    }
+
+    User user = userOpt.get();
+
+    // Check if token is expired
+    if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
+      return false;
+    }
+
+    // Verify the user
+    user.setEmailVerified(true);
+    user.setVerificationToken(null);
+    user.setVerificationTokenExpiry(null);
+    userRepository.save(user);
+
+    return true;
+  }
+
+
+  public void resendVerificationEmail(String email) {
+    Optional<User> userOpt = userRepository.findByEmail(email);
+
+    if (userOpt.isEmpty() || userOpt.get().isEmailVerified()) {
+      throw new RuntimeException("User not found or already verified");
+    }
+
+    User user = userOpt.get();
+
+    // Generate new token
+    String newToken = UUID.randomUUID().toString();
+    user.setVerificationToken(newToken);
+    user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+    userRepository.save(user);
+
+    // Send new verification email
+    emailService.sendVerificationEmail(email, newToken);
+  }
+
+
+  @GetMapping("/verify")
+  public ResponseEntity<?> verifyEmailController(@RequestParam String token) {
+    boolean verified = this.verifyEmail(token);
+
+    if (verified) {
+      return ResponseEntity.ok(new MessageResponse("Email verified successfully!"));
+    } else {
+      return ResponseEntity.badRequest().body(new MessageResponse("Invalid or expired verification token"));
+    }
+  }
+
+  @PostMapping("/resend-verification")
+  public ResponseEntity<?> resendVerification(@RequestBody ResenedVerificationRequest request) {
+    try {
+      this.resendVerificationEmail(request.getEmail());
+      return ResponseEntity.ok(new MessageResponse("Verification email sent!"));
+    } catch (RuntimeException e) {
+      return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+    }
+  }
+
+
 }

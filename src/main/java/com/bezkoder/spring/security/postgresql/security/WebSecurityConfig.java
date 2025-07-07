@@ -97,6 +97,9 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
         .authorizeHttpRequests(auth -> 
           auth.requestMatchers("/api/auth/**").permitAll()
               .requestMatchers("/api/test/**").permitAll()
+              .requestMatchers("/api/job/**").permitAll()
+              .requestMatchers("/api/cv/**").permitAll()
+              .requestMatchers("/api/profile/**").permitAll()
               .anyRequest().authenticated()
         );
     
@@ -112,7 +115,13 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowCredentials(true);
-    configuration.setAllowedOrigins(Collections.singletonList("http://localhost:4200")); // Frontend Angular
+    //configuration.setAllowedOrigins(Collections.singletonList("http://localhost:4200",));
+    configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:4200",  // Your Angular app
+            "chrome-extension://",    // Postman desktop app
+            "postman-agent://"        // Postman web agent
+    ));
+    configuration.addAllowedOriginPattern("*");
     configuration.setAllowedHeaders(Arrays.asList(
             HttpHeaders.ORIGIN,
             HttpHeaders.CONTENT_TYPE,
@@ -133,6 +142,16 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
     return source;
   }
 
+
+
+/*
+    configuration.setAllowedHeaders(Arrays.asList(
+            HttpHeaders.ORIGIN,
+            HttpHeaders.CONTENT_TYPE,
+            HttpHeaders.ACCEPT,
+            HttpHeaders.AUTHORIZATION
+    ));
+ */
 
 
 }

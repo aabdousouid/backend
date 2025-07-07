@@ -1,12 +1,17 @@
 package com.bezkoder.spring.security.postgresql.models;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table( name = "users", 
@@ -14,6 +19,9 @@ import jakarta.validation.constraints.Size;
           @UniqueConstraint(columnNames = "username"),
           @UniqueConstraint(columnNames = "email") 
         })
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,19 +37,38 @@ public class User {
   private String email;
 
   @NotBlank
+  private String firstname;
+
+  @NotBlank
+  private String lastname;
+
+  @NotBlank
   @Size(max = 120)
   private String password;
+
+  private boolean emailVerified = false;
+
 
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
   private Set<Role> roles = new HashSet<>();
 
-  public User() {
-  }
+  private String verificationToken;
 
-  public User(String username, String email, String password) {
+  private LocalDateTime verificationTokenExpiry;
+
+  /*@Column(name = "actual_column_name", nullable = false)
+  private LocalDateTime createdAt = LocalDateTime.now();
+
+   */
+
+
+
+  public User(String username ,String firstname,String lastname,String email, String password) {
     this.username = username;
     this.email = email;
+    this.firstname = firstname;
+    this.lastname = lastname;
     this.password = password;
   }
 
@@ -84,4 +111,8 @@ public class User {
   public void setRoles(Set<Role> roles) {
     this.roles = roles;
   }
+
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @JsonManagedReference
+  private UserProfile profile;
 }
