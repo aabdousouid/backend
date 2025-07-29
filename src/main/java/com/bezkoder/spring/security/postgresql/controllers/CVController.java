@@ -1,5 +1,6 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
+import com.bezkoder.spring.security.postgresql.MultipartInputStreamFileResource;
 import com.bezkoder.spring.security.postgresql.dto.JobRecommendation;
 import com.bezkoder.spring.security.postgresql.models.Job;
 import com.bezkoder.spring.security.postgresql.models.RecommendationRequest;
@@ -11,14 +12,19 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.BodyContentHandler;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
@@ -67,7 +73,8 @@ public class CVController {
     }
 
 
-    @PostMapping("/upload-cv")
+
+     @PostMapping("/upload-cv")
     public ResponseEntity<?> uploadCV(@RequestParam("file") MultipartFile file) {
         try {
             Path filePath = root.resolve(Objects.requireNonNull(file.getOriginalFilename()));
@@ -111,7 +118,25 @@ public class CVController {
         }
     }
 
-    private String extractTextFromCV(Path filePath) throws Exception {
+
+        @GetMapping("/cv/{filename:.+}")
+        public ResponseEntity<Resource> downloadCv(@PathVariable String filename) throws IOException {
+            Path filePath = Paths.get("uploads/cvs/").resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists()) {
+                throw new FileNotFoundException("CV file not found: " + filename);
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        }
+
+
+
+        private String extractTextFromCV(Path filePath) throws Exception {
         try (InputStream stream = Files.newInputStream(filePath)) {
             AutoDetectParser parser = new AutoDetectParser();
             BodyContentHandler handler = new BodyContentHandler(-1);
@@ -121,7 +146,14 @@ public class CVController {
         }
     }
 
-    @PostMapping("/recommend")
+
+
+
+
+
+
+
+        @PostMapping("/recommend")
     public ResponseEntity<?> recommendJobs(@RequestBody Map<String, Object> requestBody) {
         try {
             String cvJson = (String) requestBody.get("cvJson");

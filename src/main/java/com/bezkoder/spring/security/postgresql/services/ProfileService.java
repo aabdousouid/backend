@@ -3,8 +3,10 @@ package com.bezkoder.spring.security.postgresql.services;
 import com.bezkoder.spring.security.postgresql.dto.UserProfileRequest;
 import com.bezkoder.spring.security.postgresql.models.User;
 import com.bezkoder.spring.security.postgresql.models.UserProfile;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -20,5 +22,10 @@ public interface ProfileService {
 
     public ResponseEntity<UserProfile> updateProfile(Long profileId, UserProfile Profile);
 
+    ResponseEntity<UserProfile> updateProfileWithCV(Long profileId, UserProfile userProfile, MultipartFile cvFile) throws IOException;
+
+    UserProfile addProfileWithCV(UserProfileRequest userProfile, MultipartFile cvFile) throws IOException;
+
+    Resource downloadCV(Long profileId) throws IOException;
 
 }

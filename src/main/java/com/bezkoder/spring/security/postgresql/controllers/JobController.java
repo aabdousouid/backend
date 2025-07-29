@@ -6,11 +6,13 @@ import com.bezkoder.spring.security.postgresql.services.ApplicationService;
 import com.bezkoder.spring.security.postgresql.services.JobService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.simpleframework.xml.Path;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,8 +36,11 @@ public class JobController {
     }
     @GetMapping("/getJobs")
     public List<Job> getAllJobs () {
+        if(this.jobService.getAllJobs().isEmpty()){
+            return new ArrayList<Job>();
+        }
 
-        return this.jobService.getAllJobs();
+        else return this.jobService.getAllJobs();
     }
 
     @GetMapping("/getJob/{id}")
@@ -65,5 +70,10 @@ public class JobController {
     @PatchMapping("/applications/{appId}/status")
     public ResponseEntity<Application> updateApplicationStatus(@PathVariable Long appId, @RequestParam String status) {
         return ResponseEntity.ok(applicationService.updateStatus(appId, status));
+    }
+
+    @DeleteMapping("/deleteJob/{jobId}")
+    public void deleteJob(@PathVariable Long jobId){
+        this.jobService.DeleteByIdJob(jobId);
     }
 }

@@ -1,5 +1,7 @@
 package com.bezkoder.spring.security.postgresql.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,7 +38,7 @@ public class Job {
 
     private String experience;
 
-    private String salary;
+   // private String salary;
 
     @Column(length = 2000)
     private String requirements;
@@ -57,6 +59,8 @@ public class Job {
 
 
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    //@JsonManagedReference
+    @JsonIgnore
     private List<Application> applications;
 }
 

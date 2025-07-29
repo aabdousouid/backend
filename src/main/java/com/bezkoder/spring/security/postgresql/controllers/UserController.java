@@ -6,10 +6,12 @@ import com.bezkoder.spring.security.postgresql.models.UserProfile;
 import com.bezkoder.spring.security.postgresql.repository.UserProfileRepository;
 import com.bezkoder.spring.security.postgresql.services.ProfileService;
 import com.bezkoder.spring.security.postgresql.services.ProfileServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,11 +30,46 @@ import java.util.Optional;
 public class UserController {
     private final ProfileServiceImpl profileService;
     private final UserProfileRepository userProfileRepository;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/addProfile")
-    public UserProfile addProfile(@RequestBody UserProfileRequest userProfile) throws IOException {
+    public ResponseEntity<UserProfile> addProfile(@RequestBody UserProfileRequest userProfile) throws IOException {
 
-        return profileService.addProfile(userProfile);
+        try {
+            UserProfile savedProfile = profileService.addProfile(userProfile);
+            return ResponseEntity.ok(savedProfile);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+
+    }
+
+    @PostMapping(value = "/add-with-cv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfile> addProfileWithCV(
+            @RequestParam("profile") String profileJson,
+            @RequestParam(value = "cv", required = false) MultipartFile cvFile) {
+        try {
+            UserProfileRequest userProfile = objectMapper.readValue(profileJson, UserProfileRequest.class);
+            UserProfile savedProfile = profileService.addProfileWithCV(userProfile, cvFile);
+            return ResponseEntity.ok(savedProfile);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+
+
+    @PutMapping(value = "/{profileId}/update-with-cv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfile> updateProfileWithCV(
+            @PathVariable Long profileId,
+            @RequestParam("profile") String profileJson,
+            @RequestParam(value = "cv", required = false) MultipartFile cvFile) {
+        try {
+            UserProfile userProfile = objectMapper.readValue(profileJson, UserProfile.class);
+            return profileService.updateProfileWithCV(profileId, userProfile, cvFile);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/getProfile/{id}")
@@ -114,6 +151,31 @@ public class UserController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + path.getFileName().toString() + "\"")
                 .body(resource);
     }
+
+    @GetMapping("/{profileId}/download-cv")
+    public ResponseEntity<Resource> downloadCV(@PathVariable Long profileId) {
+        try {
+            Resource resource = profileService.downloadCV(profileId);
+
+            // Get the original filename for the download
+            String filename = "cv.pdf"; // Default filename
+            Optional<UserProfile> profile = profileService.getProfile(profileId);
+            if (profile.isPresent() && profile.get().getCvFilePath() != null) {
+                String cvPath = profile.get().getCvFilePath();
+                filename = cvPath.substring(cvPath.lastIndexOf("/") + 1);
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+
+
 
 
 }

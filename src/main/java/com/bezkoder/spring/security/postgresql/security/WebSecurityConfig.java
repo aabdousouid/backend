@@ -100,6 +100,10 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
               .requestMatchers("/api/job/**").permitAll()
               .requestMatchers("/api/cv/**").permitAll()
               .requestMatchers("/api/profile/**").permitAll()
+              .requestMatchers("/api/application/**").permitAll()
+              .requestMatchers("/api/interview/**").permitAll()
+              .requestMatchers("/api/chat-bot/**").permitAll()
+              .requestMatchers("/api/complaint/**").permitAll()
               .anyRequest().authenticated()
         );
     
