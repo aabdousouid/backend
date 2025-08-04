@@ -32,4 +32,10 @@ public class Notifications {
 
     @Column(nullable = false)
     private Boolean isRead = false;
+
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+    }
 }

@@ -1,5 +1,6 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
+import com.bezkoder.spring.security.postgresql.dto.UpcomingInterviewDTO;
 import com.bezkoder.spring.security.postgresql.models.Application;
 import com.bezkoder.spring.security.postgresql.models.Interview;
 import com.bezkoder.spring.security.postgresql.models.InterviewStatus;
@@ -61,6 +62,12 @@ public class InterviewController {
     @PutMapping("/updateInterviewStatus/{interviewId}")
     public ResponseEntity<Interview> updateInterviewStatus(@PathVariable Long interviewId, @RequestBody String status){
         return ResponseEntity.ok(this.interviewService.updateStatus(interviewId,status));
+    }
+
+
+    @GetMapping("/upcoming")
+    public List<UpcomingInterviewDTO> getUpcomingInterviews(@RequestParam(defaultValue = "5") int limit) {
+        return interviewService.getUpcomingInterviews(limit);
     }
 
 }

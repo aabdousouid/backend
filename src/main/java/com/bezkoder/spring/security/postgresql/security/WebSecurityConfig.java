@@ -104,6 +104,9 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
               .requestMatchers("/api/interview/**").permitAll()
               .requestMatchers("/api/chat-bot/**").permitAll()
               .requestMatchers("/api/complaint/**").permitAll()
+              .requestMatchers("/api/dashboardStats/**").permitAll()
+              .requestMatchers("/api/notifications/**").permitAll()
+                  .requestMatchers("/ws/**").permitAll()
               .anyRequest().authenticated()
         );
     
@@ -123,7 +126,8 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
     configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:4200",  // Your Angular app
             "chrome-extension://",    // Postman desktop app
-            "postman-agent://"        // Postman web agent
+            "postman-agent://"
+
     ));
     configuration.addAllowedOriginPattern("*");
     configuration.setAllowedHeaders(Arrays.asList(

@@ -1,11 +1,16 @@
 package com.bezkoder.spring.security.postgresql.services;
 
+
+import com.bezkoder.spring.security.postgresql.models.Job;
+import com.bezkoder.spring.security.postgresql.models.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,8 +59,9 @@ public class PythonBridgeService {
         return response.getBody();
     }
 
-    public Map<String, Object> startQuiz(Map<String, Object> job, String candidateName) {
+    public Map<String, Object> startQuiz(Map<String, Object> parsedCv, Map<String, Object> job, String candidateName) {
         Map<String, Object> payload = new HashMap<>();
+        payload.put("parsed_cv", parsedCv);
         payload.put("job", job);
         payload.put("candidate_name", candidateName);
 
@@ -63,6 +69,7 @@ public class PythonBridgeService {
                 pythonApiUrl + "/generate-quiz", payload, Map.class);
         return response.getBody();
     }
+
 
     public Map<String, Object> submitQuiz(List<Integer> answers, String candidateName) {
         Map<String, Object> payload = new HashMap<>();
@@ -73,7 +80,6 @@ public class PythonBridgeService {
                 pythonApiUrl + "/submit-quiz", payload, Map.class);
         return response.getBody();
     }
-
 
 
 

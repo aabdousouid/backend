@@ -1,9 +1,6 @@
 package com.bezkoder.spring.security.postgresql.services;
 
-import com.bezkoder.spring.security.postgresql.models.Application;
-import com.bezkoder.spring.security.postgresql.models.ApplicationStatus;
-import com.bezkoder.spring.security.postgresql.models.Job;
-import com.bezkoder.spring.security.postgresql.models.User;
+import com.bezkoder.spring.security.postgresql.models.*;
 
 import javax.swing.text.html.Option;
 import java.util.Date;
@@ -30,6 +27,6 @@ public interface ApplicationService {
 
     Optional<Boolean> findByUserAndJob(Long userId,Long jobId);
 
-
+    Optional<QuizResults> findQuizByApplicationId(Long applicationId);
 
 }

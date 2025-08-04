@@ -4,10 +4,12 @@ import com.bezkoder.spring.security.postgresql.dto.ScoreResponseDto;
 import com.bezkoder.spring.security.postgresql.models.*;
 import com.bezkoder.spring.security.postgresql.repository.ApplicationRepositroy;
 import com.bezkoder.spring.security.postgresql.repository.JobRepository;
+import com.bezkoder.spring.security.postgresql.repository.QuizResultRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,10 +27,12 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final EmailServiceImpl emailService;
     private final ProfileServiceImpl profileService;
 
-    public static final String UPLOAD_DIR = "uploads/cvs/";
+    private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     private final ApplicationRepositroy applicationRepositroy;
     private final JobRepository jobRepository;
+    private final QuizResultRepository quizResultRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -171,10 +175,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 if (newStatus == ApplicationStatus.HIRED) {
                     // Must have RH and TECHNIQUE interviews
                     long rhCount = application.getInterviews().stream()
-                            .filter(i -> i.getInterviewType().equals(InterviewType.valueOf("RH")))
+                            .filter(i -> i.getInterviewTest().equals(InterviewTest.valueOf("RH")))
                             .count();
                     long techCount = application.getInterviews().stream()
-                            .filter(i -> i.getInterviewType().equals(InterviewType.valueOf("TECHNIQUE")))
+                            .filter(i -> i.getInterviewTest().equals(InterviewTest.valueOf("TECHNIQUE")))
                             .count();
                     if (rhCount == 0 || techCount == 0) {
                         throw new IllegalStateException("Cannot mark as HIRED without both RH and TECHNIQUE interviews");
@@ -199,6 +203,25 @@ public class ApplicationServiceImpl implements ApplicationService {
             emailService.sendHiredEmail(email,application);
         }
 
+        // === NOTIFICATION LOGIC ===
+        User targetUser = application.getUser();
+        String notifMsg = "Your application status for " + application.getJob().getTitle()
+                + " has changed to: " + newStatus.toString();
+        Notifications notif = new Notifications();
+        notif.setRecipient(targetUser);
+        notif.setMessage(notifMsg);
+        notif.setType(NotificationType.APPLICATION_STATUS_CHANGED); // make sure your enum matches
+        notif.setCreatedAt(LocalDateTime.now());
+        notif.setIsRead(false);
+        notificationService.save(notif);
+
+        // Send real-time notification to frontend (username must match the principal)
+        messagingTemplate.convertAndSendToUser(
+                targetUser.getUsername(), // must match Spring Security principal!
+                "/queue/notifications",
+                notif
+        );
+        // ==========================
         return applicationRepositroy.save(application);
     }
 
@@ -240,6 +263,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
          return Optional.of(returnedBool);
+    }
+
+    @Override
+    public Optional<QuizResults> findQuizByApplicationId(Long applicationId) {
+
+         QuizResults quizResults = this.quizResultRepository.findByApplicationApplicationId(applicationId).orElseThrow(()->new RuntimeException("Application Do not Have any Quiz"));
+
+
+        return Optional.of(quizResults);
+
     }
 
 

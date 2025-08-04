@@ -132,4 +132,10 @@ public class ApplicationController {
 
     }
 
+    @GetMapping("/findByApplicationId/{applicationId}")
+    public Optional<QuizResults> findByApplicationId(@PathVariable Long applicationId){
+        return this.applicationService.findQuizByApplicationId(applicationId);
+    }
+
+
 }

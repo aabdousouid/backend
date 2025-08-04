@@ -1,14 +1,20 @@
 package com.bezkoder.spring.security.postgresql.services;
 
-import com.bezkoder.spring.security.postgresql.models.Application;
-import com.bezkoder.spring.security.postgresql.models.Interview;
-import com.bezkoder.spring.security.postgresql.models.InterviewStatus;
+import com.bezkoder.spring.security.postgresql.dto.UpcomingInterviewDTO;
+import com.bezkoder.spring.security.postgresql.models.*;
 import com.bezkoder.spring.security.postgresql.repository.ApplicationRepositroy;
 import com.bezkoder.spring.security.postgresql.repository.InterviewRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +22,8 @@ public class InterviewServiceImpl implements InterviewService{
     private final InterviewRepository interviewRepository;
     private final ApplicationRepositroy applicationRepositroy;
     private final EmailServiceImpl emailService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     @Override
     public Interview addInterview(Interview interview, Long applicationId) {
@@ -39,11 +47,45 @@ public class InterviewServiceImpl implements InterviewService{
 
         interview.setApplication(application);
         this.emailService.sendInterviewEmail(application.getUser().getEmail(),interview);
-        return interviewRepository.save(interview);
+        Interview savedInterview= interviewRepository.save(interview);
+
+        Application app = interview.getApplication();
+        User user = app.getUser();
+
+// Create & save notification
+        Notifications notif = new Notifications();
+        notif.setRecipient(user);
+        notif.setMessage("A new interview (" + interview.getInterviewTest() + ") was scheduled for your application to: " + app.getJob().getTitle());
+        notif.setType(NotificationType.INTERVIEW_SCHEDULED); // Update your enum as needed
+        notif.setCreatedAt(java.time.LocalDateTime.now());
+        notif.setIsRead(false);
+        notificationService.save(notif);
+
+
+        return savedInterview;
 
     }
 
 
+    public List<UpcomingInterviewDTO> getUpcomingInterviews(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Interview> interviews = interviewRepository
+                .findByScheduledDateAfterOrderByScheduledDateAsc(new Date(), pageable);
+        //System.out.println(interviews);
+        return interviews.stream().map(i -> {
+            Application app = i.getApplication();
+            User user = app.getUser();
+            Job job = app.getJob();
+
+            String candidateName = user.getFirstname() + " " + user.getLastname();
+            String jobTitle = job.getTitle();
+            Date scheduledDate = i.getScheduledDate();
+            String status = i.getStatus() != null ? i.getStatus().toString() : "";
+
+            return new UpcomingInterviewDTO(candidateName, jobTitle, scheduledDate, status);
+        }).collect(Collectors.toList());
+    }
 
     @Override
     public Interview findById(Long interviewId) {
@@ -123,6 +165,28 @@ public class InterviewServiceImpl implements InterviewService{
                 // Status unchanged, but other details may have changed
                 this.emailService.sendUpdateInterview(toEmail, updatedInterview);
             }
+            /*Notifications notif = new Notifications();
+            notif.setRecipient(application.getUser());
+            notif.setMessage("Interview (" + updatedInterview.getInterviewTest() + ") status updated to: " + updatedInterview.getStatus());
+            notif.setType(NotificationType.APPLICATION_STATUS_CHANGED); // Use enum value
+            notif.setCreatedAt(java.time.LocalDateTime.now());
+            notif.setIsRead(false);
+            notificationService.save(notif);*/
+
+            // Example notification message
+            String notifMsg = "Your interview has been updated!";
+
+            // Build notification payload (could be a DTO or Map or String)
+            Map<String, Object> notif = new HashMap<>();
+            notif.put("message", notifMsg);
+            notif.put("timestamp", System.currentTimeMillis());
+            //System.out.println(interview.getApplication().getUser().getUsername());
+            // Send notification to user (assume interview.getApplication().getUser().getUsername())
+            String payload = "{\"message\": \"Your interview has been updated!\", \"timestamp\": " + System.currentTimeMillis() + "}";
+            messagingTemplate.convertAndSendToUser(application.getUser().getUsername(), "/queue/notifications", payload);
+
+
+
         }
 
         return updatedInterview;
@@ -132,6 +196,7 @@ public class InterviewServiceImpl implements InterviewService{
     public Interview updateStatus(Long interviewId, String status) {
         Interview interview = this.interviewRepository.findById(interviewId).orElseThrow(()-> new RuntimeException("Interview not found"));
         interview.setStatus(InterviewStatus.valueOf(status));
+
         return this.interviewRepository.save(interview);
     }
 
