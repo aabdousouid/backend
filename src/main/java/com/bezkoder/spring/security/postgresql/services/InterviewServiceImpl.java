@@ -23,7 +23,7 @@ public class InterviewServiceImpl implements InterviewService{
     private final ApplicationRepositroy applicationRepositroy;
     private final EmailServiceImpl emailService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final NotificationService notificationService;
+    private final NotificationServiceImpl notificationService;
 
     @Override
     public Interview addInterview(Interview interview, Long applicationId) {
@@ -57,9 +57,12 @@ public class InterviewServiceImpl implements InterviewService{
         notif.setRecipient(user);
         notif.setMessage("A new interview (" + interview.getInterviewTest() + ") was scheduled for your application to: " + app.getJob().getTitle());
         notif.setType(NotificationType.INTERVIEW_SCHEDULED); // Update your enum as needed
-        notif.setCreatedAt(java.time.LocalDateTime.now());
+        notif.setCreatedAt(new Date());
         notif.setIsRead(false);
-        notificationService.save(notif);
+        notificationService.sendNotification(
+                user.getUsername(),
+                notif
+        );
 
 
         return savedInterview;
@@ -165,25 +168,18 @@ public class InterviewServiceImpl implements InterviewService{
                 // Status unchanged, but other details may have changed
                 this.emailService.sendUpdateInterview(toEmail, updatedInterview);
             }
-            /*Notifications notif = new Notifications();
+            Notifications notif = new Notifications();
             notif.setRecipient(application.getUser());
             notif.setMessage("Interview (" + updatedInterview.getInterviewTest() + ") status updated to: " + updatedInterview.getStatus());
             notif.setType(NotificationType.APPLICATION_STATUS_CHANGED); // Use enum value
-            notif.setCreatedAt(java.time.LocalDateTime.now());
+            notif.setCreatedAt(new Date());
             notif.setIsRead(false);
-            notificationService.save(notif);*/
+            notificationService.sendNotification(
+                    application.getUser().getUsername(),
+                    notif
+            );
 
             // Example notification message
-            String notifMsg = "Your interview has been updated!";
-
-            // Build notification payload (could be a DTO or Map or String)
-            Map<String, Object> notif = new HashMap<>();
-            notif.put("message", notifMsg);
-            notif.put("timestamp", System.currentTimeMillis());
-            //System.out.println(interview.getApplication().getUser().getUsername());
-            // Send notification to user (assume interview.getApplication().getUser().getUsername())
-            String payload = "{\"message\": \"Your interview has been updated!\", \"timestamp\": " + System.currentTimeMillis() + "}";
-            messagingTemplate.convertAndSendToUser(application.getUser().getUsername(), "/queue/notifications", payload);
 
 
 

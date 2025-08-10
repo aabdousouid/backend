@@ -28,7 +28,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final ProfileServiceImpl profileService;
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final NotificationService notificationService;
+    private final NotificationServiceImpl notificationService;
 
     private final ApplicationRepositroy applicationRepositroy;
     private final JobRepository jobRepository;
@@ -207,18 +207,15 @@ public class ApplicationServiceImpl implements ApplicationService {
         User targetUser = application.getUser();
         String notifMsg = "Your application status for " + application.getJob().getTitle()
                 + " has changed to: " + newStatus.toString();
+
         Notifications notif = new Notifications();
         notif.setRecipient(targetUser);
         notif.setMessage(notifMsg);
-        notif.setType(NotificationType.APPLICATION_STATUS_CHANGED); // make sure your enum matches
-        notif.setCreatedAt(LocalDateTime.now());
+        notif.setType(NotificationType.APPLICATION_STATUS_CHANGED); // Update your enum as needed
+        notif.setCreatedAt(new Date());
         notif.setIsRead(false);
-        notificationService.save(notif);
-
-        // Send real-time notification to frontend (username must match the principal)
-        messagingTemplate.convertAndSendToUser(
-                targetUser.getUsername(), // must match Spring Security principal!
-                "/queue/notifications",
+        notificationService.sendNotification(
+                targetUser.getUsername(),
                 notif
         );
         // ==========================

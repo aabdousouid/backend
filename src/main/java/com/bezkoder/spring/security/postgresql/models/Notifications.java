@@ -5,7 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+
+import java.util.Date;
 
 @Entity
 @Table(name = "notifications")
@@ -28,7 +29,7 @@ public class Notifications {
     private NotificationType type;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Date createdAt = new Date();
 
     @Column(nullable = false)
     private Boolean isRead = false;
@@ -36,6 +37,6 @@ public class Notifications {
 
     @PrePersist
     public void prePersist() {
-        createdAt = LocalDateTime.now();
+        createdAt = new Date();
     }
 }

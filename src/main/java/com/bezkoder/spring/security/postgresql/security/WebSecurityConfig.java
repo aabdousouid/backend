@@ -97,7 +97,7 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
         .authorizeHttpRequests(auth -> 
           auth.requestMatchers("/api/auth/**").permitAll()
               .requestMatchers("/api/test/**").permitAll()
-              .requestMatchers("/api/job/**").permitAll()
+              .requestMatchers("/api/job/**").authenticated()
               .requestMatchers("/api/cv/**").permitAll()
               .requestMatchers("/api/profile/**").permitAll()
               .requestMatchers("/api/application/**").permitAll()
@@ -105,8 +105,8 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
               .requestMatchers("/api/chat-bot/**").permitAll()
               .requestMatchers("/api/complaint/**").permitAll()
               .requestMatchers("/api/dashboardStats/**").permitAll()
-              .requestMatchers("/api/notifications/**").permitAll()
-                  .requestMatchers("/ws/**").permitAll()
+              .requestMatchers("/api/notifications/**").authenticated()
+              .requestMatchers("/ws/**", "/ws").permitAll()
               .anyRequest().authenticated()
         );
     
