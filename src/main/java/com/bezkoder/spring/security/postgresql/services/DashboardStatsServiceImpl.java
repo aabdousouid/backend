@@ -8,6 +8,7 @@ import com.bezkoder.spring.security.postgresql.repository.JobRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -47,4 +48,42 @@ public class DashboardStatsServiceImpl {
 
         return dto;
     }
+
+
+    public DashboardStatsDTO getUserStats(Long userId) {
+        LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+
+        // start of week (Monday) to match common expectations; adjust if your locale wants Sunday
+        LocalDate startOfWeekDate = LocalDate.now()
+                .with(DayOfWeek.MONDAY);
+        LocalDateTime weekStart = startOfWeekDate.atStartOfDay();
+
+        Date todayDate = java.sql.Date.valueOf(LocalDate.now());
+        Date weekStartDate = java.sql.Date.valueOf(startOfWeekDate);
+
+        DashboardStatsDTO dto = new DashboardStatsDTO();
+
+        // Applications (ONLY this user's)
+        dto.setApplications(applicationRepository.countByUserId(userId));
+        dto.setNewApplications(applicationRepository.countByUserIdAndAppliedDateAfter(userId, monthStart));
+        dto.setNewApplications(applicationRepository.countByUserIdAndAppliedDateAfter(userId, todayStart));
+
+        // Interviews for this user's applications
+        dto.setInterviewsConducted(interviewRepository.countByApplication_User_IdAndScheduledDateAfter(userId, todayDate));
+        dto.setInterviewsThisWeek(interviewRepository.countByApplication_User_IdAndScheduledDateAfter(userId, weekStartDate));
+
+        // Offers & outcomes (define what "offer" means in your flow)
+        long offersThisMonth = applicationRepository.countByUserIdAndStatusAndAppliedDateAfter(userId, ApplicationStatus.APPROVED, monthStart);
+        long hiresThisMonth  = applicationRepository.countByUserIdAndStatusAndAppliedDateAfter(userId, ApplicationStatus.HIRED, monthStart);
+        long rejectionsTotal = applicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.REJECTED);
+
+        dto.setOfferAcceptanceRate(offersThisMonth);
+
+        dto.setOfferAcceptanceRate(offersThisMonth > 0 ? (100.0 * hiresThisMonth / offersThisMonth) : 0.0);
+
+        return dto;
+    }
+
+
 }

@@ -17,6 +17,7 @@ public interface ApplicationRepositroy extends JpaRepository<Application, Long>
 {
     List<Application> findByUserId(Long userId);
 
+    long countByUserId(Long userId);
     @Override
     void deleteById(Long applicationId);
 
@@ -25,4 +26,9 @@ public interface ApplicationRepositroy extends JpaRepository<Application, Long>
     long countByAppliedDateAfter(LocalDateTime date);
     long countByStatus(ApplicationStatus status);
     long countByStatusAndAppliedDateAfter(ApplicationStatus status, LocalDateTime date);
+
+    long countByUserIdAndAppliedDateAfter(Long userId, LocalDateTime date);
+
+    long countByUserIdAndStatus(Long userId, ApplicationStatus status);
+    long countByUserIdAndStatusAndAppliedDateAfter(Long userId,ApplicationStatus status,LocalDateTime date);
 }

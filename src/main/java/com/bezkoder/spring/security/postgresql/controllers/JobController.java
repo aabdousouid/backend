@@ -1,4 +1,5 @@
 package com.bezkoder.spring.security.postgresql.controllers;
+import com.bezkoder.spring.security.postgresql.dto.TopAppliedJobsDTO;
 import com.bezkoder.spring.security.postgresql.models.Application;
 import com.bezkoder.spring.security.postgresql.models.User;
 import com.bezkoder.spring.security.postgresql.models.Job;
@@ -28,6 +29,12 @@ public class JobController {
     @PostMapping("/addJob")
     public ResponseEntity<Job> addJob(@Valid @RequestBody Job job) throws IOException {
         return ResponseEntity.ok(jobService.addJob(job));
+    }
+
+
+    @PutMapping("/updateJob/{jobId}")
+    public ResponseEntity<Job> updateJob(@Valid @RequestBody Job job,@PathVariable Long jobId){
+        return ResponseEntity.ok(this.jobService.updateJob(jobId,job));
     }
 
     @GetMapping("/testing")
@@ -75,5 +82,21 @@ public class JobController {
     @DeleteMapping("/deleteJob/{jobId}")
     public void deleteJob(@PathVariable Long jobId){
         this.jobService.DeleteByIdJob(jobId);
+    }
+
+    @GetMapping("/getTopAppliedJobs")
+    public List<TopAppliedJobsDTO> getTopAppliedJobs(@RequestParam(defaultValue = "5") int limit){
+        List<TopAppliedJobsDTO> all = jobService.getTopAppliedJobs();
+        return all.stream().limit(limit).toList();
+    }
+
+    @PatchMapping("/{id}/disable")
+    public ResponseEntity<Job> disableJob(@PathVariable Long id) {
+        return ResponseEntity.ok(jobService.disableJob(id));
+    }
+
+    @PatchMapping("/{id}/enable")
+    public ResponseEntity<Job> enableJob(@PathVariable Long id) {
+        return ResponseEntity.ok(jobService.enableJob(id));
     }
 }

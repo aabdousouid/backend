@@ -8,6 +8,7 @@ import com.bezkoder.spring.security.postgresql.repository.ApplicationRepositroy;
 import com.bezkoder.spring.security.postgresql.repository.InterviewRepository;
 import com.bezkoder.spring.security.postgresql.services.InterviewServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.simpleframework.xml.Path;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,4 +71,33 @@ public class InterviewController {
         return interviewService.getUpcomingInterviews(limit);
     }
 
+
+    @GetMapping("/user/{userId}/past-interviews")
+    public List<UpcomingInterviewDTO> getPastInterviews(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return interviewService.getPastInterviewsForUser(userId, limit);
+    }
+
+
+    @PatchMapping("/{interviewId}/cancel")
+    public ResponseEntity<Interview> cancelInterview(
+            @PathVariable Long interviewId,
+            @RequestParam(required = false) String reason  // optional reason to show in mail/notif
+    ) {
+        return ResponseEntity.ok(interviewService.cancelInterview(interviewId, reason));
+    }
+
+    // (Optional) generic, query-param based status change
+    @PatchMapping("/{interviewId}/status")
+    public ResponseEntity<Interview> setStatus(
+            @PathVariable Long interviewId,
+            @RequestParam String status,
+            @RequestParam(required = false) String reason
+    ) {
+        return ResponseEntity.ok(
+                interviewService.setStatus(interviewId, InterviewStatus.valueOf(status.toUpperCase()), reason)
+        );
+    }
 }

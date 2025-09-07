@@ -17,5 +17,7 @@ List<Interview> findApplicationInterview(Long applicationId);
 Interview updateInterview (Long interviewId,Interview interview);
 
 Interview updateStatus (Long interviewId, String status);
+ Interview cancelInterview(Long interviewId, String reason);
+ Interview setStatus(Long interviewId, InterviewStatus newStatus, String reason);
 
 }

@@ -32,8 +32,8 @@ public class ApplicationController {
 
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Tika tika = new Tika();
-
+    //private final Tika tika = new Tika();
+    private final Tika tika ;
     @PostMapping("/apply/{jobId}/{userId}")
     public ResponseEntity<Application> applyJob(@PathVariable Long jobId,
                                                 @PathVariable Long userId,

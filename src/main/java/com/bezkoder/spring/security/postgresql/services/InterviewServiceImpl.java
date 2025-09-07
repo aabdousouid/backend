@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -69,6 +70,29 @@ public class InterviewServiceImpl implements InterviewService{
 
     }
 
+    public List<UpcomingInterviewDTO> getPastInterviewsForUser(Long userId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Interview> interviews = interviewRepository
+                .findByApplication_User_IdAndScheduledDateBeforeOrderByScheduledDateDesc(
+                        userId,
+                        new Date(),
+                        pageable
+                );
+
+        return interviews.stream().map(i -> {
+            Application app = i.getApplication();
+            User user = app.getUser();
+            Job job = app.getJob();
+
+            String candidateName = user.getFirstname() + " " + user.getLastname();
+            String jobTitle = job.getTitle();
+            Date scheduledDate = i.getScheduledDate();
+            String status = i.getStatus() != null ? i.getStatus().toString() : "";
+
+            return new UpcomingInterviewDTO(candidateName, jobTitle, scheduledDate, status);
+        }).collect(Collectors.toList());
+    }
 
     public List<UpcomingInterviewDTO> getUpcomingInterviews(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
@@ -189,11 +213,60 @@ public class InterviewServiceImpl implements InterviewService{
     }
 
     @Override
+    @Transactional
     public Interview updateStatus(Long interviewId, String status) {
-        Interview interview = this.interviewRepository.findById(interviewId).orElseThrow(()-> new RuntimeException("Interview not found"));
-        interview.setStatus(InterviewStatus.valueOf(status));
-
-        return this.interviewRepository.save(interview);
+        // keep backward-compat for existing endpoint
+        InterviewStatus newStatus = InterviewStatus.valueOf(status.toUpperCase());
+        return setStatus(interviewId, newStatus, null);
     }
 
+    @Override
+    @Transactional
+    public Interview cancelInterview(Long interviewId, String reason) {
+        return setStatus(interviewId, InterviewStatus.CANCELLED, reason);
+    }
+
+
+
+    @Override
+    @Transactional
+    public Interview setStatus(Long interviewId, InterviewStatus newStatus, String reason) {
+        Interview interview = interviewRepository.findById(interviewId)
+                .orElseThrow(() -> new RuntimeException("Interview not found"));
+
+        InterviewStatus oldStatus = interview.getStatus();
+        if (oldStatus == newStatus) {
+            // no-op return current (you can throw if you prefer)
+            return interview;
+        }
+
+        // apply
+        interview.setStatus(newStatus);
+        Interview updated = interviewRepository.save(interview);
+
+        // side-effects: email + websocket notif (reuse what you already do in updateInterview)
+        Application app = findApplicationByInterviewId(interviewId);
+        String toEmail = app.getUser().getEmail();
+
+        switch (newStatus) {
+            case COMPLETED -> emailService.sendCompletedInterview(toEmail, updated);
+            case CANCELLED -> emailService.sendCanceledInterview(toEmail, updated);
+            case RESCHEDULED -> emailService.sendRescheduledInterview(toEmail, updated);
+            case CONFIRMED -> emailService.sendConfirmedInterview(toEmail, updated);
+            default -> emailService.sendUpdateInterview(toEmail, updated);
+        }
+
+        Notifications notif = new Notifications();
+        notif.setRecipient(app.getUser());
+        notif.setMessage(
+                "Interview (" + updated.getInterviewTest() + ") status updated to: " + updated.getStatus() +
+                        (reason != null && !reason.isBlank() ? " — Reason: " + reason : "")
+        );
+        notif.setType(NotificationType.APPLICATION_STATUS_CHANGED);
+        notif.setCreatedAt(new Date());
+        notif.setIsRead(false);
+        notificationService.sendNotification(app.getUser().getUsername(), notif);
+
+        return updated;
+    }
 }
