@@ -1,9 +1,12 @@
 name: Backend CI (tests + SonarCloud)
 
 on:
-  push: { branches: ["**"] }
-  pull_request: { branches: ["**"] }
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
 
+# ⬇️ set to your backend folder
 defaults:
   run:
     working-directory: .
@@ -11,16 +14,51 @@ defaults:
 jobs:
   test-and-sonar:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: appdb
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U app -d appdb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Debug workspace (optional)
+        run: |
+          pwd
+          ls -la
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '17'        # keep 17 to avoid old processor issues
           cache: maven
 
-      - name: Tests + Coverage (JaCoCo)
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && echo "DB up" && break
+            echo "Waiting for DB..."
+            sleep 2
+          done
+
+      - name: Tests + Coverage (JaCoCo) against CI Postgres
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
+          SPRING_DATASOURCE_USERNAME: admin
+          SPRING_DATASOURCE_PASSWORD: admin
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+          SPRING_FLYWAY_ENABLED: "false"     # flip to true if you want to test migrations
+          SPRING_LIQUIBASE_ENABLED: "false"  # same here
         run: mvn -B -ntp clean verify
 
       - name: SonarCloud Scan
