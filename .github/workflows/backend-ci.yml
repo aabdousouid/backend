@@ -1,0 +1,76 @@
+name: Backend CI (tests + SonarCloud)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# If your pom.xml is in a subfolder, change this to that folder.
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  test-and-sonar:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: appdb
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U app -d appdb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Debug workspace (optional)
+        run: |
+          pwd
+          ls -la
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && echo "DB up" && break
+            echo "Waiting for DB..."
+            sleep 2
+          done
+
+      - name: Tests + Coverage (JaCoCo) against CI Postgres
+        run: |
+          mvn -B -ntp \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/appdb \
+            -Dspring.datasource.username=app \
+            -Dspring.datasource.password=app \
+            -Dspring.jpa.hibernate.ddl-auto=create-drop \
+            -Dspring.flyway.enabled=false \
+            -Dspring.liquibase.enabled=false \
+            clean verify
+
+      - name: SonarCloud Scan
+        if: ${{ vars.USE_SONARCLOUD == 'true' }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: |
+          mvn -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.organization="$SONAR_ORGANIZATION" \
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
