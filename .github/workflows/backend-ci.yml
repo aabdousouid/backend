@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["**"]
 
-# ⬇️ set to your backend folder
+# If your pom.xml is in a subfolder, change this to that folder.
 defaults:
   run:
     working-directory: .
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'        # keep 17 to avoid old processor issues
+          java-version: '17'
           cache: maven
 
       - name: Wait for Postgres
@@ -52,14 +52,15 @@ jobs:
           done
 
       - name: Tests + Coverage (JaCoCo) against CI Postgres
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
-          SPRING_DATASOURCE_USERNAME: admin
-          SPRING_DATASOURCE_PASSWORD: admin
-          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-          SPRING_FLYWAY_ENABLED: "false"     # flip to true if you want to test migrations
-          SPRING_LIQUIBASE_ENABLED: "false"  # same here
-        run: mvn -B -ntp clean verify
+        run: |
+          mvn -B -ntp \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/appdb \
+            -Dspring.datasource.username=app \
+            -Dspring.datasource.password=app \
+            -Dspring.jpa.hibernate.ddl-auto=create-drop \
+            -Dspring.flyway.enabled=false \
+            -Dspring.liquibase.enabled=false \
+            clean verify
 
       - name: SonarCloud Scan
         if: ${{ vars.USE_SONARCLOUD == 'true' }}
