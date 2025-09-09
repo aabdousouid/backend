@@ -6,7 +6,7 @@ on:
 
 defaults:
   run:
-    working-directory: spring-boot-security-postgresql-master
+    working-directory: .
 
 jobs:
   test-and-sonar:
