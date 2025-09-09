@@ -64,8 +64,11 @@ public class AuthController {
     Authentication authentication ;
 
     try {
-      authentication=authenticationManager
-        .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+      authentication = authenticationManager
+              .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+    }catch (org.springframework.security.authentication.DisabledException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("Error: Account is deactivated or email not verified.");
 
     }catch (AuthenticationException e){
       return ResponseEntity

@@ -1,7 +1,9 @@
 package com.bezkoder.spring.security.postgresql.repository;
 
+import java.util.List;
 import java.util.Optional;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +19,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   Optional<User> findByEmail(String email);
   Optional<User> findByVerificationToken(String token);
+
+  @NotNull
+  List<User> findAll();
 
 
 }

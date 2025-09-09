@@ -28,9 +28,12 @@ public class UserDetailsImpl implements UserDetails {
   @JsonIgnore
   private String password;
 
+  private final boolean active;         // <-- NEW: mirrors User.isActive()
+  private final boolean emailVerified;
+
   private Collection<? extends GrantedAuthority> authorities;
 
-  public UserDetailsImpl(Long id, String username, String firstname,String lastname,String email, String password,
+  public UserDetailsImpl(Long id, String username, String firstname,String lastname,String email, String password,Boolean active,Boolean emailVerified,
       Collection<? extends GrantedAuthority> authorities) {
     this.id = id;
     this.username = username;
@@ -38,6 +41,8 @@ public class UserDetailsImpl implements UserDetails {
     this.lastname = lastname;
     this.email = email;
     this.password = password;
+    this.active = active;
+    this.emailVerified = emailVerified;
     this.authorities = authorities;
 
   }
@@ -52,7 +57,9 @@ public class UserDetailsImpl implements UserDetails {
                                user.getFirstname(),
                                user.getLastname(),
                                user.getEmail(),
-                               user.getPassword(), 
+                               user.getPassword(),
+                               user.isActive(),
+                               user.isEmailVerified(),
                                authorities);
   }
 
@@ -104,7 +111,8 @@ public class UserDetailsImpl implements UserDetails {
 
   @Override
   public boolean isEnabled() {
-    return true;
+    //return true;
+    return active && emailVerified;
   }
 
   @Override

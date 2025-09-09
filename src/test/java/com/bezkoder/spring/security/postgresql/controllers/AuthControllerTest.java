@@ -66,7 +66,7 @@ class AuthControllerTest {
 
         Authentication authentication = mock(Authentication.class);
         UserDetailsImpl userDetails = new UserDetailsImpl(
-                1L, "john", "John", "Doe", "john@mail.com", "pass", List.of()
+                1L, "john", "John", "Doe", "john@mail.com", "pass",true,true, List.of()
         );
 
         when(authentication.getPrincipal()).thenReturn(userDetails);
@@ -110,7 +110,7 @@ class AuthControllerTest {
 
         Authentication authentication = mock(Authentication.class);
         UserDetailsImpl userDetails = new UserDetailsImpl(
-                1L, "john", "John", "Doe", "john@mail.com", "pass", List.of()
+                1L, "john", "John", "Doe", "john@mail.com", "pass",true,false, List.of()
         );
 
         when(authentication.getPrincipal()).thenReturn(userDetails);
@@ -137,7 +137,7 @@ class AuthControllerTest {
 
         Authentication authentication = mock(Authentication.class);
         UserDetailsImpl userDetails = new UserDetailsImpl(
-                1L, "unknown", "Unknown", "User", "unknown@mail.com", "pass", List.of()
+                1L, "unknown", "Unknown", "User", "unknown@mail.com", "pass",false,false, List.of()
         );
 
         when(authentication.getPrincipal()).thenReturn(userDetails);

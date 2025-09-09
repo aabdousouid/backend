@@ -48,6 +48,8 @@ public class User {
 
   private boolean emailVerified = false;
 
+  private boolean isActive = true;
+
 
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
