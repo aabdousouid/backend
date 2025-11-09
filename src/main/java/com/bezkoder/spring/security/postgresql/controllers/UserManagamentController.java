@@ -1,15 +1,12 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
 import com.bezkoder.spring.security.postgresql.models.User;
-import com.bezkoder.spring.security.postgresql.models.UserProfile;
 import com.bezkoder.spring.security.postgresql.services.UserService;
 import lombok.AllArgsConstructor;
-import org.hibernate.annotations.Parameter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @CrossOrigin(origins = "*", maxAge = 3600)

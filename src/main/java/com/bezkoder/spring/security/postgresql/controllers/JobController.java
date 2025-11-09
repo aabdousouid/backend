@@ -7,7 +7,6 @@ import com.bezkoder.spring.security.postgresql.services.ApplicationService;
 import com.bezkoder.spring.security.postgresql.services.JobService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.simpleframework.xml.Path;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;

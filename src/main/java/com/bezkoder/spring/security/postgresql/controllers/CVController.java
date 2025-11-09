@@ -1,9 +1,7 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
-import com.bezkoder.spring.security.postgresql.MultipartInputStreamFileResource;
 import com.bezkoder.spring.security.postgresql.dto.JobRecommendation;
 import com.bezkoder.spring.security.postgresql.models.Job;
-import com.bezkoder.spring.security.postgresql.models.RecommendationRequest;
 import com.bezkoder.spring.security.postgresql.repository.JobRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -18,8 +16,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;

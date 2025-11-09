@@ -8,7 +8,7 @@ import com.bezkoder.spring.security.postgresql.services.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
-import org.apache.tika.Tika;
+
 import org.apache.tika.exception.TikaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.Date;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -179,6 +179,43 @@ public class ChatBotController {
         return ResponseEntity.ok(savedResult);
     }
 
+    @PostMapping("/parse-cv-of-user/{userId}")
+    public ResponseEntity<?> parseCvOfUser(@PathVariable Long userId) {
+        try {
+            Optional<UserProfile> upOpt = userProfileRepository.findById(
+                    userRepository.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("User not found"))
+                            .getProfile().getProfileId()
+            );
+            if (upOpt.isEmpty()) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User profile not found");
 
+            UserProfile up = upOpt.get();
+            String storedPath = up.getCvFilePath();
+            if (storedPath == null || storedPath.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No CV uploaded in user profile");
+            }
+
+            // Support either absolute or relative paths
+            Path path = Paths.get(storedPath);
+            if (!path.isAbsolute()) {
+                // Your upload controller defaults to "uploads/cvs/..."
+                path = Paths.get("uploads").resolve(storedPath).normalize();
+            }
+
+            if (!Files.exists(path)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("CV file not found on disk");
+            }
+
+            byte[] bytes = Files.readAllBytes(path);
+            String filename = path.getFileName() != null ? path.getFileName().toString() : "cv.pdf";
+            String contentType = Files.probeContentType(path); // may be null
+
+            Map<String, Object> parsed = pythonBridge.parseCvBytes(bytes, filename, contentType);
+            return ResponseEntity.ok(parsed);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to parse CV: " + e.getMessage());
+        }
+    }
 
 }

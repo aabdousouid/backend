@@ -100,4 +100,9 @@ public class InterviewController {
                 interviewService.setStatus(interviewId, InterviewStatus.valueOf(status.toUpperCase()), reason)
         );
     }
+
+    @GetMapping("/getAllInterviews")
+    public List<Interview> findAll(){
+        return this.interviewRepository.findAll();
+    }
 }

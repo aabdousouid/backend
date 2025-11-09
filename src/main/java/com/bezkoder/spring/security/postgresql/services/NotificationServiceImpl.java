@@ -1,5 +1,7 @@
 package com.bezkoder.spring.security.postgresql.services;
 
+import com.bezkoder.spring.security.postgresql.dto.NotificationDTO;
+import com.bezkoder.spring.security.postgresql.mappers.NotificationMapper;
 import com.bezkoder.spring.security.postgresql.models.Notifications;
 import com.bezkoder.spring.security.postgresql.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +36,13 @@ public class NotificationServiceImpl implements NotificationService{
     public Notifications sendNotification(String userId,Notifications notification){
         //log.info("Sending web socket notification to {} with payload {}",userId,notification);
         Notifications saved = notificationRepository.save(notification);
+
+        NotificationDTO dto = NotificationMapper.toDto(saved);
+
         messagingTemplate.convertAndSendToUser(
                 userId,
                 "/notifications",
-                notification
+                dto
         );
         return saved;
     }

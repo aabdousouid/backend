@@ -1,8 +1,7 @@
 package com.bezkoder.spring.security.postgresql.controllers;
 
 import com.bezkoder.spring.security.postgresql.dto.DashboardStatsDTO;
-import com.bezkoder.spring.security.postgresql.dto.PlatformActivityResponse;
-import com.bezkoder.spring.security.postgresql.models.Application;
+
 import com.bezkoder.spring.security.postgresql.repository.ApplicationRepositroy;
 import com.bezkoder.spring.security.postgresql.repository.JobRepository;
 import com.bezkoder.spring.security.postgresql.services.DashboardStatsServiceImpl;

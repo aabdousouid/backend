@@ -14,7 +14,7 @@ public class OllamaService {
         String url = "http://localhost:11434/api/generate";  // Adjust if needed
 
         Map<String, Object> request = new HashMap<>();
-        request.put("model", "llama3"); // or whichever model you're using
+        request.put("model", "llama3.1:8b"); // or whichever model you're using
         request.put("prompt", buildPrompt(cvText));
         request.put("stream", false);
 

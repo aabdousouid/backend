@@ -3,6 +3,7 @@ package com.bezkoder.spring.security.postgresql.services;
 
 import com.bezkoder.spring.security.postgresql.models.Job;
 import com.bezkoder.spring.security.postgresql.models.User;
+import com.drew.lang.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -82,7 +83,33 @@ public class PythonBridgeService {
     }
 
 
+    public Map<String, Object> parseCvBytes(byte[] bytes, String filename, @Nullable String contentType) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
+        ByteArrayResource fileRes = new ByteArrayResource(bytes) {
+            @Override
+            public String getFilename() {
+                return (filename != null && !filename.isBlank()) ? filename : "cv.pdf";
+            }
+        };
+
+        // Let server infer content type from filename if missing
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        HttpHeaders fileHeaders = new HttpHeaders();
+        if (contentType != null && !contentType.isBlank()) {
+            fileHeaders.setContentType(MediaType.parseMediaType(contentType));
+        }
+        HttpEntity<ByteArrayResource> fileEntity = new HttpEntity<>(fileRes, fileHeaders);
+        body.add("file", fileEntity);
+
+        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                pythonApiUrl + "/parse-cv", request, Map.class);
+
+        return response.getBody();
+    }
 
 
 }
